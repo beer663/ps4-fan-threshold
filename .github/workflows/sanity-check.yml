@@ -1,42 +1,31 @@
----
-name: "Sanity Check"
+name: Build 74C Payload
 
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      -
-        name: "Checkout"
-        uses: actions/checkout@v2
-      -
-        name: "Setup Environment"
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build SDK
         run: |
-          git clone https://github.com/Scene-Collective/ps4-payload-sdk ~/ps4-payload-sdk && cd "$_"
-          chmod +x install.sh
-          sudo ./install.sh
-      -
-        name: "Build Payload"
+          git clone --depth 1 https://github.com/Scene-Collective/ps4-payload-sdk.git "$RUNNER_TEMP/ps4-payload-sdk"
+          make -C "$RUNNER_TEMP/ps4-payload-sdk/libPS4"
+          echo "PS4SDK=$RUNNER_TEMP/ps4-payload-sdk" >> "$GITHUB_ENV"
+
+      - name: Build payload
         run: |
-          export PS4SDK=/opt/ps4sdk
           make
-      -
-        name: "Upload Binary Artifact"
-        uses: actions/upload-artifact@v2
+          cp "$(basename "$PWD").bin" "$RUNNER_TEMP/ps4-fan-74.bin"
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
         with:
-          path: ./*.bin
-          if-no-files-found: error
-      -
-        name: "Upload Map Artifact"
-        uses: actions/upload-artifact@v2
-        with:
-          path: ./*.map
+          name: ps4-fan-74
+          path: ${{ runner.temp }}/ps4-fan-74.bin
           if-no-files-found: error
